@@ -1,0 +1,49 @@
+# coding=utf-8
+
+import logging
+from engine.game_types import GameSellItem, GameUseStorageItem, MoveToStorage
+from engine.base import BaseBot
+
+logger = logging.getLogger(__name__)
+
+
+class LocalStorageBot(BaseBot):
+
+    moveToStorage = True
+
+    def perform_action(self):
+        sell_items = self.get_enum().sell_items
+
+        for sell_item in sell_items:
+            sell_item_name = sell_item.get('name')
+            item_count = self.get_game_state().count_storage(sell_item_name)
+            if item_count > sell_item.get('min'):
+                delta = long(item_count - sell_item.get('min'))
+                item_obj = self.get_item_reader().get(sell_item_name)
+
+                sell_item_event = GameSellItem(itemId=sell_item_name[1:], count=delta)
+                self.get_events_sender().send_game_events([sell_item_event])
+                self.get_game_state().remove_storage(sell_item_name, delta)
+
+                logger.info(u'Продали со склада %s %i шт.' % (item_obj.name, delta))
+
+        for wealth in self.get_enum().wealth_types:
+            wealth_count = self.get_game_state().count_storage(wealth)
+            item_obj = self.get_item_reader().get(wealth)
+
+            for _ in xrange(wealth_count):
+
+                wealth_event = GameUseStorageItem(itemId=item_obj.id, x=10, y=10)
+                self.get_events_sender().send_game_events([wealth_event])
+                self.get_game_state().remove_storage(wealth, 1)
+
+            if wealth_count:
+                logger.info(u'Открыли со склада %s %i шт' % (item_obj.name, wealth_count))
+
+        if self.moveToStorage:
+            decorations = self.get_game_state().get_objects_by_types(["decoration"])
+            for decoration in decorations:
+                decoration_obj = self.get_item_reader().get(decoration.item)
+                logger.info(u'Убираем на склад %s' % decoration_obj.name)
+                evt = MoveToStorage(objId=decoration.id)
+                self.get_events_sender().send_game_events([evt])
