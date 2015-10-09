@@ -32,7 +32,9 @@ class OK(object):
         if session_cookies is None:
             session_cookies = self._get_session_cookies()
 
-        html = requests.get('http://www.ok.ru/games/zm', cookies=self.str2dict(session_cookies)).text
+        #html = requests.get('http://www.ok.ru/games/zm', cookies=self.str2dict(session_cookies)).text
+        ''' ссылка в одноклассниках меняется раз в неделю меняется именно этот ключ - gwt.requested=57e6afc1'''
+        html = requests.get('http://ok.ru/game/zm?st.cmd=appMain&st.appId=625920&gwt.requested=57e6afc1&p_sId=0', cookies=self.str2dict(session_cookies)).text
         params = None
         if html:
             matcher = re.compile('.*zombiefarm.html\?(.*?)"')
